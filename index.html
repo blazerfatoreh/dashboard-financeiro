@@ -428,7 +428,7 @@ async function updateRV(){
   const allTickers=[...ACOES.map(a=>a.ticker),...FIIS.map(a=>a.ticker)];
   let updated=0;
   try{
-    const url=`https://brapi.dev/api/quote/${allTickers.join(',')}?fundamental=false`;
+    const url=`https://brapi.dev/api/quote/${allTickers.join(',')}?fundamental=false&token=b8z4u4iLJsE9A22JQUYMtP`;
     const r=await fetch(url);
     const d=await r.json();
     (d?.results||[]).forEach(q=>{
