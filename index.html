@@ -427,17 +427,16 @@ async function updateRV(){
   setLoading('btn-rv',true);
   const allTickers=[...ACOES.map(a=>a.ticker),...FIIS.map(a=>a.ticker)];
   let updated=0;
-  try{
-    const url=`https://brapi.dev/api/quote/${allTickers.join(',')}?fundamental=false&token=b8z4u4iLJsE9A22JQUYMtP`;
-    const r=await fetch(url);
-    const d=await r.json();
-    (d?.results||[]).forEach(q=>{
-      const price=q.regularMarketPrice;
+  await Promise.allSettled(allTickers.map(async ticker=>{
+    try{
+      const r=await fetch(`https://brapi.dev/api/quote/${ticker}?fundamental=false&token=b8z4u4iLJsE9A22JQUYMtP`);
+      const d=await r.json();
+      const price=d?.results?.[0]?.regularMarketPrice;
       if(!price) return;
-      const a=ACOES.find(x=>x.ticker===q.symbol); if(a){a.atual=price;updated++;}
-      const fi=FIIS.find(x=>x.ticker===q.symbol); if(fi){fi.atual=price;updated++;}
-    });
-  }catch(e){}
+      const a=ACOES.find(x=>x.ticker===ticker); if(a){a.atual=price;updated++;}
+      const fi=FIIS.find(x=>x.ticker===ticker); if(fi){fi.atual=price;updated++;}
+    }catch(e){}
+  }));
   setLoading('btn-rv',false);
   if(updated>0){flash('ts-rv');render();projUpd();}
 }
