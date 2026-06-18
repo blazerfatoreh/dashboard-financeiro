@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Dashboard Financeiro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222f;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#00d4ff;--accent2:#0099cc;--accent-glow:rgba(0,212,255,0.12);
+  --green:#00e676;--red:#ff5252;--amber:#ffb300;--purple:#b388ff;
+  --text:#f0f0f0;--text2:#9999aa;--text3:#44445a;
+  --r:12px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+.app{max-width:480px;margin:0 auto;padding-bottom:76px;}
+@media(min-width:768px){.app{max-width:960px;}}
+
+/* HEADER */
+.header{padding:18px 16px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.header-title{font-size:11px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.header-ts{font-size:12px;color:var(--text3);}
+.btns{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+.btn{display:flex;align-items:center;gap:5px;border:1px solid;font-size:11px;font-weight:600;padding:6px 12px;border-radius:99px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-rv{background:rgba(0,230,118,.08);border-color:rgba(0,230,118,.25);color:var(--green);}
+.btn-rv:hover{background:rgba(0,230,118,.15);}
+.btn-cripto{background:var(--accent-glow);border-color:rgba(0,212,255,.25);color:var(--accent);}
+.btn-cripto:hover{background:rgba(0,212,255,.18);}
+.btn:active{transform:scale(.96);}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.btn.loading svg{animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ts-rv{font-size:10px;color:var(--green);text-align:right;height:13px;opacity:0;transition:opacity .3s;}
+.ts-cripto{font-size:10px;color:var(--accent);text-align:right;height:13px;opacity:0;transition:opacity .3s;}
+
+/* HERO */
+.hero{padding:18px 16px 14px;}
+.hero-label{font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.hero-value{font-size:36px;font-weight:700;letter-spacing:-1.5px;line-height:1;}
+.hero-value .pre{font-size:18px;font-weight:400;color:var(--text2);vertical-align:super;margin-right:2px;}
+.hero-sub{font-size:13px;color:var(--text2);margin-top:5px;}
+
+/* METAS */
+.metas{padding:0 16px 18px;}
+.metas-hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.meta-pct{font-size:22px;font-weight:700;color:var(--accent);}
+.meta-falta{font-size:12px;color:var(--text3);}
+.track-bg{height:5px;background:var(--bg4);border-radius:99px;overflow:visible;position:relative;margin-bottom:9px;}
+.track-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--accent));position:relative;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.track-glow{position:absolute;right:-1px;top:50%;transform:translate(50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 7px var(--accent);}
+.milestones{display:flex;justify-content:space-between;}
+.ms{font-size:10px;text-align:center;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:3px;}
+.ms-dot{width:5px;height:5px;border-radius:50%;background:var(--bg4);}
+.ms.done .ms-dot{background:var(--accent);}.ms.done{color:var(--accent);}
+.ms.next .ms-dot{background:var(--amber);}.ms.next{color:var(--amber);}
+
+/* PANELS */
+.panel{display:none;padding:0 16px;animation:fadeUp .18s ease;}
+.panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px;}
+.card-title{font-size:11px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;}
+
+/* METRICS GRID */
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+@media(min-width:480px){.mg{grid-template-columns:repeat(4,1fr);}}
+.mc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:13px 12px;}
+.mc-lbl{font-size:10px;color:var(--text3);margin-bottom:5px;}
+.mc-val{font-size:16px;font-weight:600;color:var(--text);}
+.mc-sub{font-size:11px;margin-top:3px;}
+.pos{color:var(--green)!important;}.neg{color:var(--red)!important;}
+.acc{color:var(--accent)!important;}.muted{color:var(--text2)!important;}
+.amber-c{color:var(--amber)!important;}
+
+/* TABLE */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;white-space:nowrap;}
+th{font-size:10px;color:var(--text3);font-weight:500;letter-spacing:.05em;text-transform:uppercase;padding:5px 8px;border-bottom:1px solid var(--border);}
+td{padding:8px;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.tr{text-align:right;}.mono{font-family:'SF Mono','Fira Code',monospace;font-size:12px;}
+
+/* BADGES */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;}
+.b-acao{background:rgba(0,212,255,.1);color:var(--accent);}
+.b-fii{background:rgba(0,230,118,.1);color:var(--green);}
+.b-fundo{background:rgba(255,179,0,.1);color:var(--amber);}
+.b-rf{background:rgba(179,136,255,.1);color:var(--purple);}
+.b-btc{background:rgba(255,179,0,.1);color:var(--amber);}
+.b-doge{background:rgba(0,212,255,.1);color:var(--accent);}
+.b-sol{background:rgba(0,230,118,.1);color:var(--green);}
+.b-ada{background:rgba(179,136,255,.1);color:var(--purple);}
+.b-gala{background:rgba(255,82,82,.1);color:var(--red);}
+
+/* ALLOC BARS */
+.ar{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.al{font-size:12px;color:var(--text2);min-width:76px;}
+.at{flex:1;background:var(--bg4);border-radius:99px;height:7px;overflow:hidden;}
+.af{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.4,0,.2,1);}
+.av{font-size:12px;font-weight:600;min-width:90px;text-align:right;}
+
+/* ALERTS */
+.alert{border-radius:var(--rs);padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;}
+.alert-w{background:rgba(255,179,0,.06);border:1px solid rgba(255,179,0,.18);}
+.alert-ok{background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.18);}
+.alert-i{font-size:15px;flex-shrink:0;}
+.alert-b{font-size:13px;line-height:1.5;color:var(--text2);}
+.alert-b strong{color:var(--text);}
+
+/* PROVENTOS */
+.prov-soon{background:rgba(255,179,0,.12);color:var(--amber);border-radius:99px;font-size:11px;padding:2px 8px;font-weight:600;white-space:nowrap;}
+.prov-future{background:var(--bg3);color:var(--text3);border-radius:99px;font-size:11px;padding:2px 8px;white-space:nowrap;}
+.yr-sep{font-size:10px;color:var(--text3);background:var(--bg3);padding:3px 8px;border-radius:6px;display:inline-block;margin:8px 0 2px;letter-spacing:.05em;}
+
+/* CHART WRAPPERS */
+.cw{position:relative;height:185px;}
+.cw-lg{position:relative;height:230px;}
+@media(min-width:768px){.cw{height:230px;}.cw-lg{height:290px;}}
+
+/* LIVE DOT */
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;animation:livep 2s infinite;}
+.live-dot.green{background:var(--green);}
+.live-dot.blue{background:var(--accent);}
+@keyframes livep{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* REND */
+.rend-big{font-size:30px;font-weight:700;color:var(--green);margin-bottom:3px;}
+.rend-lbl{font-size:12px;color:var(--text3);margin-bottom:14px;}
+
+/* PROJEÇÃO */
+.ctrl-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:13px 14px;margin-bottom:10px;}
+.ctrl-lbl{font-size:11px;color:var(--text3);margin-bottom:6px;}
+.ctrl-val{font-size:17px;font-weight:600;color:var(--text);margin-bottom:8px;}
+.range-row{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;}
+.proj-mc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:13px 12px;}
+.proj-mc.ok{border-color:rgba(0,230,118,.35);}
+.proj-mc.ok .proj-mc-val{color:var(--green);}
+.proj-mc.warn{border-color:rgba(255,179,0,.35);}
+.proj-mc.warn .proj-mc-val{color:var(--amber);}
+.proj-mc-lbl{font-size:10px;color:var(--text3);margin-bottom:5px;}
+.proj-mc-val{font-size:16px;font-weight:600;color:var(--text);}
+.proj-mc-sub{font-size:11px;color:var(--text2);margin-top:3px;}
+.accel-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+@media(min-width:480px){.accel-grid{grid-template-columns:repeat(4,1fr);}}
+.accel-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px 10px;cursor:pointer;transition:border-color .2s;}
+.accel-card:hover{border-color:rgba(0,230,118,.4);}
+.accel-card:active{transform:scale(.97);}
+.accel-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.accel-val{font-size:12px;color:var(--green);font-weight:600;margin-bottom:4px;}
+.accel-desc{font-size:11px;color:var(--text3);line-height:1.4;}
+.income-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:7px 0;border-bottom:1px solid var(--border);}
+.income-row:last-child{border-bottom:none;}
+.income-lbl{color:var(--text2);}
+.income-val{font-weight:600;color:var(--green);}
+.income-total{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;padding:10px 0 0;}
+.proj-note{font-size:11px;color:var(--text3);line-height:1.6;background:var(--bg3);border-radius:var(--rs);padding:10px 12px;margin-top:8px;}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(10,10,15,.97);backdrop-filter:blur(24px);border-top:1px solid var(--border2);display:flex;z-index:100;}
+@media(min-width:480px){.nav{max-width:480px;}}
+@media(min-width:768px){.nav{max-width:960px;}}
+.nb{flex:1;padding:10px 0 13px;background:none;border:none;color:var(--text3);font-size:9px;letter-spacing:.03em;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .15s;}
+.nb svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.nb.active{color:var(--accent);}
+
+/* DESKTOP */
+@media(min-width:768px){
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .two .card{margin-bottom:0;}
+  .proj-ctrl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">Meu Patrimônio</div>
+    <div class="header-ts" id="ts">—</div>
+  </div>
+  <div class="btns">
+    <button class="btn btn-rv" id="btn-rv" onclick="updateRV()">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.37 5.37A9 9 0 0020.49 15"/></svg>
+      Ações & FIIs
+    </button>
+    <button class="btn btn-cripto" id="btn-cripto" onclick="updateCripto()">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.37 5.37A9 9 0 0020.49 15"/></svg>
+      Cripto
+    </button>
+    <div class="ts-rv" id="ts-rv">✓ ações atualizadas</div>
+    <div class="ts-cripto" id="ts-cripto">✓ cripto atualizada</div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">Total consolidado</div>
+  <div class="hero-value"><span class="pre">R$</span><span id="hero-num">—</span></div>
+  <div class="hero-sub" id="hero-sub"></div>
+</div>
+
+<!-- METAS -->
+<div class="metas">
+  <div class="metas-hd">
+    <div><span class="meta-pct" id="meta-pct">—%</span><span style="font-size:12px;color:var(--text3);margin-left:6px;">rumo ao R$ 1M</span></div>
+    <div class="meta-falta" id="meta-falta"></div>
+  </div>
+  <div class="track-bg"><div class="track-fill" id="track-fill"><div class="track-glow"></div></div></div>
+  <div class="milestones" id="milestones"></div>
+</div>
+
+<!-- PANEL: GERAL -->
+<div id="p-geral" class="panel active">
+  <div class="mg" id="mg-geral"></div>
+  <div class="two">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Alocação</span></div>
+      <div id="alloc-bars"></div>
+      <div class="cw" style="margin-top:14px;"><canvas id="donut" role="img" aria-label="Distribuição do patrimônio por classe."></canvas></div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Próximos proventos</span></div>
+        <div class="tw"><table><thead><tr><th>Data</th><th>Ativo</th><th class="tr">Valor</th><th>Status</th></tr></thead><tbody id="tb-pp"></tbody></table></div>
+      </div>
+      <div id="geral-alertas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: CARTEIRA -->
+<div id="p-carteira" class="panel">
+  <div class="mg" id="mg-cart"></div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Ações</span><span style="font-size:11px;color:var(--text3);"><span class="live-dot green"></span>Yahoo Finance</span></div>
+    <div class="tw"><table><thead><tr><th>Ticker</th><th class="tr">Qtd</th><th class="tr">PM</th><th class="tr">Atual</th><th class="tr">Total</th><th class="tr">Result.</th></tr></thead><tbody id="tb-acoes"></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Fundos imobiliários</span><span style="font-size:11px;color:var(--text3);"><span class="live-dot green"></span>Yahoo Finance</span></div>
+    <div class="tw"><table><thead><tr><th>Ticker</th><th class="tr">Qtd</th><th class="tr">PM</th><th class="tr">Atual</th><th class="tr">Total</th><th class="tr">Result.</th></tr></thead><tbody id="tb-fiis"></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Cripto — Binance</span><span style="font-size:11px;color:var(--text3);"><span class="live-dot blue"></span>Crypto.com</span></div>
+    <div class="tw"><table><thead><tr><th>Ativo</th><th class="tr">Qtd</th><th class="tr">USD</th><th class="tr">BRL</th><th class="tr">Total</th><th class="tr">% cripto</th></tr></thead><tbody id="tb-cripto"></tbody></table></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text3);text-align:right;">USD/BRL: <span id="fx-rate">R$ 5,09</span></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Renda fixa</span></div>
+    <div class="tw"><table><thead><tr><th>Ativo</th><th class="tr">Aplicado</th><th class="tr">Atual</th><th class="tr">Rendimento</th></tr></thead><tbody id="tb-rf"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PANEL: PROVENTOS -->
+<div id="p-proventos" class="panel">
+  <div class="mg" id="mg-prov"></div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Rendimento mensal estimado</span></div>
+    <div class="rend-big" id="rend-val">—</div>
+    <div class="rend-lbl">dividendos FIIs + ações + juros renda fixa</div>
+    <div class="cw"><canvas id="rend-chart" role="img" aria-label="Rendimento mensal por classe."></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Agenda completa</span></div>
+    <div class="tw"><table><thead><tr><th>Data</th><th>Ativo</th><th class="tr">Valor</th><th>Status</th></tr></thead><tbody id="tb-prov"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PANEL: ANÁLISES -->
+<div id="p-analises" class="panel">
+  <div class="mg" id="mg-an"></div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Evolução do patrimônio</span></div>
+    <div class="cw-lg"><canvas id="evolucao" role="img" aria-label="Evolução patrimonial."></canvas></div>
+  </div>
+  <div class="two">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Concentração por ativo</span></div>
+      <div id="conc-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Alertas</span></div>
+      <div id="an-alertas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: PROJEÇÃO -->
+<div id="p-projecao" class="panel">
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Simulador — jornada até R$ 1M</span></div>
+
+    <div class="proj-ctrl-grid" style="display:grid;gap:10px;margin-bottom:14px;">
+      <div class="ctrl-card">
+        <div class="ctrl-lbl">Renda extra por trimestre</div>
+        <div class="ctrl-val" id="p-trim-val">R$ 10.000</div>
+        <input type="range" min="0" max="60000" step="1000" value="10000" id="p-trim-sl" style="width:100%;" oninput="projUpd()">
+        <div class="range-row"><span>R$ 0</span><span>R$ 60k</span></div>
+      </div>
+      <div class="ctrl-card">
+        <div class="ctrl-lbl">Renda extra mensal (freela / 2º emprego)</div>
+        <div class="ctrl-val" id="p-extra-val">R$ 0</div>
+        <input type="range" min="0" max="10000" step="500" value="0" id="p-extra-sl" style="width:100%;" oninput="projUpd()">
+        <div class="range-row"><span>R$ 0</span><span>R$ 10k/mês</span></div>
+      </div>
+      <div class="ctrl-card">
+        <div class="ctrl-lbl">Rentabilidade anual esperada</div>
+        <div class="ctrl-val" id="p-rent-val">12%</div>
+        <input type="range" min="8" max="20" step="0.5" value="12" id="p-rent-sl" style="width:100%;" oninput="projUpd()">
+        <div class="range-row"><span>8% conservador</span><span>20% arrojado</span></div>
+      </div>
+    </div>
+
+    <div class="card-hd" style="margin-bottom:8px;"><span class="card-title">Renda anual</span></div>
+    <div style="margin-bottom:14px;">
+      <div class="income-row"><span class="income-lbl">Poupança do salário (R$ 2k/mês + crescimento)</span><span class="income-val" id="p-row-sal">—</span></div>
+      <div class="income-row"><span class="income-lbl">Participação WEG (anual)</span><span class="income-val">+ R$ 20.000</span></div>
+      <div class="income-row"><span class="income-lbl">Restituição IR EUA (somente jan/2027)</span><span class="income-val">+ R$ 10.220 <span style="font-size:10px;color:var(--text3);">única vez</span></span></div>
+      <div class="income-row"><span class="income-lbl">Renda trimestral (4×)</span><span class="income-val" id="p-row-trim">—</span></div>
+      <div class="income-row" id="p-row-extra-wrap" style="display:none;"><span class="income-lbl">Renda extra mensal</span><span class="income-val" id="p-row-extra">—</span></div>
+      <div class="income-total"><span style="color:var(--text2);">Total anual recorrente</span><span id="p-row-total" style="color:var(--text);">—</span></div>
+    </div>
+
+    <div class="mg" id="p-cards" style="margin-bottom:14px;"></div>
+
+    <div class="cw-lg" style="margin-bottom:14px;"><canvas id="p-chart" role="img" aria-label="Gráfico de projeção patrimonial até R$ 1 milhão.">Projeção patrimonial.</canvas></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-bottom:16px;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--green);"></span>Patrimônio</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:2px;background:var(--amber);display:inline-block;"></span>Meta R$ 1M</span>
+    </div>
+
+    <div class="card-hd" style="margin-bottom:8px;"><span class="card-title">Aceleradores de renda</span></div>
+    <div class="accel-grid" id="p-accel"></div>
+
+    <div class="proj-note">Patrimônio inicial calculado em tempo real da carteira atual · Salário cresce +R$ 300 líquido a cada 6 meses · IR EUA entra somente em jan/2027 · Rentabilidade composta anualmente · Proventos reinvestidos</div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nb active" onclick="nav('geral',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Geral
+  </button>
+  <button class="nb" onclick="nav('carteira',this)">
+    <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 3H8L6 7h12l-2-4z"/><circle cx="12" cy="14" r="2"/></svg>Carteira
+  </button>
+  <button class="nb" onclick="nav('proventos',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Proventos
+  </button>
+  <button class="nb" onclick="nav('analises',this)">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Análises
+  </button>
+  <button class="nb" onclick="nav('projecao',this)">
+    <svg viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>Projeção
+  </button>
+</nav>
+
+<script>
+// ════════════════════════════════════════
+// DADOS BASE
+// ════════════════════════════════════════
+const ACOES = [
+  {ticker:'BBSE3', qtd:112,  pm:33.70, atual:38.19},
+  {ticker:'PETR4', qtd:174,  pm:30.21, atual:39.06},
+  {ticker:'WEGE3', qtd:643,  pm:39.07, atual:42.83},
+];
+const FIIS = [
+  {ticker:'KNCR11', qtd:95,   pm:104.44, atual:106.75},
+  {ticker:'VILG11', qtd:71,   pm:80.77,  atual:94.99},
+  {ticker:'VINO11', qtd:2349, pm:4.99,   atual:4.77},
+  {ticker:'XPML11', qtd:89,   pm:104.06, atual:105.32},
+];
+const RF = [
+  {nome:'Investiback XP',       badge:'b-fundo', apl:173.00,  atual:178.99,  rend:'100% CDI'},
+  {nome:'Nubank Caixa Turbo +', badge:'b-rf',    apl:7150.00, atual:7247.61, rend:'120% CDI'},
+];
+const CRIPTO_QTD  = {BTC:0.06408314,DOGE:296.8438,SOL:0.334522216,ADA:61.53934304,GALA:712.879801};
+const CRIPTO_COR  = {BTC:'#ffb300',DOGE:'#00d4ff',SOL:'#00e676',ADA:'#b388ff',GALA:'#ff5252'};
+const CRIPTO_NOME = {BTC:'Bitcoin',DOGE:'Dogecoin',SOL:'Solana',ADA:'Cardano',GALA:'Gala'};
+let   CRIPTO_USD  = {BTC:63923.21,DOGE:0.084714,SOL:71.19,ADA:0.16575,GALA:0.002624};
+let   USD_BRL     = 5.09;
+
+const PROVENTOS = [
+  {data:'22/06/2026',ticker:'PETR4',badge:'b-acao',valor:6.07,  dias:4},
+  {data:'22/06/2026',ticker:'PETR4',badge:'b-acao',valor:93.30, dias:4},
+  {data:'12/08/2026',ticker:'WEGE3',badge:'b-acao',valor:227.88,dias:55},
+  {data:'21/09/2026',ticker:'PETR4',badge:'b-acao',valor:59.93, dias:95},
+  {data:'28/09/2026',ticker:'PETR4',badge:'b-acao',valor:59.93, dias:102},
+  {data:'10/03/2027',ticker:'WEGE3',badge:'b-acao',valor:55.26, dias:265},
+  {data:'11/08/2027',ticker:'WEGE3',badge:'b-acao',valor:227.88,dias:420},
+  {data:'16/08/2028',ticker:'WEGE3',badge:'b-acao',valor:227.88,dias:790},
+];
+const EVOLUCAO = [
+  {mes:'Jan',val:38000},{mes:'Fev',val:42000},{mes:'Mar',val:44500},
+  {mes:'Abr',val:46800},{mes:'Mai',val:48200},{mes:'Jun',val:null},
+];
+const META   = 1000000;
+const MARCOS = [100000,200000,300000,500000,750000,1000000];
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+const f  = (v,d=2) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fR = v => 'R$ '+f(v);
+const fP = v => (v>=0?'+':'')+f(v)+'%';
+const pct= (v,t) => (v/t*100).toFixed(1)+'%';
+const fK = v => v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?Math.round(v/1e3)+'k':Math.round(v)+'';
+
+function flash(elId){const el=document.getElementById(elId);el.style.opacity='1';setTimeout(()=>el.style.opacity='0',3000);}
+function setLoading(btnId,on){const b=document.getElementById(btnId);b.classList.toggle('loading',on);b.disabled=on;}
+
+// ════════════════════════════════════════
+// ATUALIZAR RV — Yahoo Finance
+// ════════════════════════════════════════
+async function updateRV(){
+  setLoading('btn-rv',true);
+  const allTickers=[...ACOES.map(a=>a.ticker),...FIIS.map(a=>a.ticker)];
+  let updated=0;
+  try{
+    const url=`https://brapi.dev/api/quote/${allTickers.join(',')}?fundamental=false`;
+    const r=await fetch(url);
+    const d=await r.json();
+    (d?.results||[]).forEach(q=>{
+      const price=q.regularMarketPrice;
+      if(!price) return;
+      const a=ACOES.find(x=>x.ticker===q.symbol); if(a){a.atual=price;updated++;}
+      const fi=FIIS.find(x=>x.ticker===q.symbol); if(fi){fi.atual=price;updated++;}
+    });
+  }catch(e){}
+  setLoading('btn-rv',false);
+  if(updated>0){flash('ts-rv');render();projUpd();}
+}
+
+// ════════════════════════════════════════
+// ATUALIZAR CRIPTO — Crypto.com
+// ════════════════════════════════════════
+async function updateCripto(){
+  setLoading('btn-cripto',true);
+  const pairs=['BTC_USD','DOGE_USD','SOL_USD','ADA_USD','GALA_USD'];
+  const map={BTC_USD:'BTC',DOGE_USD:'DOGE',SOL_USD:'SOL',ADA_USD:'ADA',GALA_USD:'GALA'};
+  let updated=0;
+  await Promise.allSettled(pairs.map(async p=>{
+    try{
+      const r=await fetch(`https://api.crypto.com/exchange/v1/public/get-tickers?instrument_name=${p}`);
+      const d=await r.json();
+      const last=d?.result?.data?.[0]?.a;
+      if(last){CRIPTO_USD[map[p]]=parseFloat(last);updated++;}
+    }catch(e){}
+  }));
+  try{const fx=await fetch('https://api.exchangerate-api.com/v4/latest/USD');const fd=await fx.json();if(fd?.rates?.BRL)USD_BRL=fd.rates.BRL;}catch(e){}
+  setLoading('btn-cripto',false);
+  if(updated>0){flash('ts-cripto');render();projUpd();}
+}
+
+// ════════════════════════════════════════
+// CALCULAR TOTAIS
+// ════════════════════════════════════════
+function calc(){
+  ACOES.forEach(a=>{a.custo=a.qtd*a.pm;a.valor=a.qtd*a.atual;a.res=(a.valor-a.custo)/a.custo*100;});
+  FIIS.forEach(a=>{a.custo=a.qtd*a.pm;a.valor=a.qtd*a.atual;a.res=(a.valor-a.custo)/a.custo*100;});
+  const cripto=Object.keys(CRIPTO_QTD).map(k=>({ticker:k,nome:CRIPTO_NOME[k],qtd:CRIPTO_QTD[k],usd:CRIPTO_USD[k],precoBRL:CRIPTO_USD[k]*USD_BRL,cor:CRIPTO_COR[k],valor:CRIPTO_QTD[k]*CRIPTO_USD[k]*USD_BRL}));
+  const tA=ACOES.reduce((s,a)=>s+a.valor,0);
+  const tF=FIIS.reduce((s,a)=>s+a.valor,0);
+  const tRF=RF.reduce((s,a)=>s+a.atual,0);
+  const tC=cripto.reduce((s,c)=>s+c.valor,0);
+  const tG=tA+tF+tRF+tC;
+  const tCusto=ACOES.reduce((s,a)=>s+a.custo,0)+FIIS.reduce((s,a)=>s+a.custo,0)+RF.reduce((s,a)=>s+a.apl,0);
+  const tRes=ACOES.reduce((s,a)=>s+(a.valor-a.custo),0)+FIIS.reduce((s,a)=>s+(a.valor-a.custo),0);
+  const tProv=PROVENTOS.reduce((s,p)=>s+p.valor,0);
+  const p2026=PROVENTOS.filter(p=>p.data.includes('2026')).reduce((s,p)=>s+p.valor,0);
+  const rendFII=tF*0.0095,rendRF=7247.61*0.012+178.99*0.008,rendAc=tA*0.004;
+  const rendMes=rendFII+rendRF+rendAc;
+  return {tA,tF,tRF,tC,tG,tCusto,tRes,tProv,p2026,rendFII,rendRF,rendAc,rendMes,cripto};
+}
+
+// ════════════════════════════════════════
+// RENDER DASHBOARD
+// ════════════════════════════════════════
+let donutChart=null,rendChart=null,evolChart=null;
+
+function render(){
+  const D=calc();
+  EVOLUCAO[EVOLUCAO.length-1].val=D.tG;
+  document.getElementById('ts').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('hero-num').textContent=f(D.tG,0);
+  document.getElementById('hero-sub').innerHTML=`<span class="${D.tRes>=0?'pos':'neg'}">${D.tRes>=0?'+':'-'}${fR(Math.abs(D.tRes))}</span> em resultado acumulado RV`;
+
+  const mp=(D.tG/META*100);
+  document.getElementById('meta-pct').textContent=mp.toFixed(1)+'%';
+  document.getElementById('meta-falta').textContent='falta '+fR(META-D.tG);
+  document.getElementById('track-fill').style.width=Math.min(mp,100)+'%';
+  const msEl=document.getElementById('milestones'); msEl.innerHTML='';
+  MARCOS.forEach(m=>{const done=D.tG>=m,next=!done&&(MARCOS[MARCOS.indexOf(m)-1]||0)<=D.tG;msEl.innerHTML+=`<div class="ms ${done?'done':next?'next':''}"><div class="ms-dot"></div>${m>=1e6?'1M':m>=1e3?(m/1e3)+'k':''}</div>`;});
+
+  const mg=document.getElementById('mg-geral'); mg.innerHTML='';
+  [{lbl:'Total',val:fR(D.tG),sub:'',cls:'acc'},{lbl:'RV (XP)',val:fR(D.tA+D.tF),sub:pct(D.tA+D.tF,D.tG),cls:'muted'},{lbl:'Cripto',val:fR(D.tC),sub:pct(D.tC,D.tG),cls:'muted'},{lbl:'Renda Fixa',val:fR(D.tRF),sub:pct(D.tRF,D.tG),cls:'muted'}].forEach(d=>mg.innerHTML+=`<div class="mc"><div class="mc-lbl">${d.lbl}</div><div class="mc-val ${d.cls}">${d.val}</div><div class="mc-sub muted">${d.sub}</div></div>`);
+
+  const ab=document.getElementById('alloc-bars'); ab.innerHTML='';
+  [{l:'Ações',v:D.tA,c:'#00d4ff'},{l:'FIIs',v:D.tF,c:'#00e676'},{l:'Cripto',v:D.tC,c:'#ffb300'},{l:'Renda Fixa',v:D.tRF,c:'#b388ff'}].forEach(x=>{const p=(x.v/D.tG*100).toFixed(1);ab.innerHTML+=`<div class="ar"><span class="al">${x.l}</span><div class="at"><div class="af" style="width:${p}%;background:${x.c}"></div></div><span class="av" style="color:${x.c}">${p}% · ${fR(x.v)}</span></div>`;});
+
+  if(donutChart)donutChart.destroy();
+  donutChart=new Chart(document.getElementById('donut'),{type:'doughnut',data:{labels:['Ações','FIIs','Cripto','Renda Fixa'],datasets:[{data:[D.tA,D.tF,D.tC,D.tRF].map(v=>+v.toFixed(2)),backgroundColor:['#00d4ff','#00e676','#ffb300','#b388ff'],borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fR(ctx.raw)} (${(ctx.raw/D.tG*100).toFixed(1)}%)`}}}}});
+
+  const pp=document.getElementById('tb-pp'); pp.innerHTML='';
+  PROVENTOS.slice(0,4).forEach(p=>{const st=p.dias<=10?`<span class="prov-soon">Em ${p.dias} dias</span>`:`<span class="prov-future">${p.data.slice(0,5)}</span>`;pp.innerHTML+=`<tr><td>${p.data.slice(0,5)}</td><td><span class="badge ${p.badge}">${p.ticker}</span></td><td class="tr" style="font-weight:600;">${fR(p.valor)}</td><td>${st}</td></tr>`;});
+
+  const ga=document.getElementById('geral-alertas'); ga.innerHTML='';
+  const wPct=(ACOES.find(a=>a.ticker==='WEGE3').valor/D.tG*100);
+  if(wPct>15)ga.innerHTML+=`<div class="alert alert-w"><div class="alert-i">⚠️</div><div class="alert-b"><strong>WEGE3 em ${wPct.toFixed(1)}%</strong> do total — monitore ao aportar.</div></div>`;
+  const vino=FIIS.find(a=>a.ticker==='VINO11');
+  if(vino.res<-3)ga.innerHTML+=`<div class="alert alert-w"><div class="alert-i">⚠️</div><div class="alert-b"><strong>VINO11 ${fP(vino.res)}</strong> — único ativo no vermelho. Defina tese.</div></div>`;
+  ga.innerHTML+=`<div class="alert alert-ok"><div class="alert-i">✅</div><div class="alert-b"><strong>Sem concentração crítica</strong> — nenhum ativo supera 40%.</div></div>`;
+
+  const mgc=document.getElementById('mg-cart'); mgc.innerHTML='';
+  [{lbl:'Ações',val:fR(D.tA),sub:fP(ACOES.reduce((s,a)=>s+(a.valor-a.custo),0)/ACOES.reduce((s,a)=>s+a.custo,0)*100),cls:'pos'},{lbl:'FIIs',val:fR(D.tF),sub:fP(FIIS.reduce((s,a)=>s+(a.valor-a.custo),0)/FIIS.reduce((s,a)=>s+a.custo,0)*100),cls:'pos'},{lbl:'Cripto',val:fR(D.tC),sub:pct(D.tC,D.tG),cls:'acc'},{lbl:'Renda Fixa',val:fR(D.tRF),sub:'120% CDI',cls:'muted'}].forEach(d=>mgc.innerHTML+=`<div class="mc"><div class="mc-lbl">${d.lbl}</div><div class="mc-val">${d.val}</div><div class="mc-sub ${d.cls}">${d.sub}</div></div>`);
+
+  const ta=document.getElementById('tb-acoes'); ta.innerHTML='';
+  ACOES.forEach(a=>ta.innerHTML+=`<tr><td><span class="badge b-acao">${a.ticker}</span></td><td class="tr mono">${a.qtd}</td><td class="tr mono">${f(a.pm)}</td><td class="tr mono">${f(a.atual)}</td><td class="tr" style="font-weight:600;">${fR(a.valor)}</td><td class="tr ${a.res>=0?'pos':'neg'}">${fP(a.res)}</td></tr>`);
+  const tf=document.getElementById('tb-fiis'); tf.innerHTML='';
+  FIIS.forEach(a=>tf.innerHTML+=`<tr><td><span class="badge b-fii">${a.ticker}</span></td><td class="tr mono">${a.qtd}</td><td class="tr mono">${f(a.pm)}</td><td class="tr mono">${f(a.atual)}</td><td class="tr" style="font-weight:600;">${fR(a.valor)}</td><td class="tr ${a.res>=0?'pos':'neg'}">${fP(a.res)}</td></tr>`);
+  const tc=document.getElementById('tb-cripto'); tc.innerHTML='';
+  const tCt=D.cripto.reduce((s,c)=>s+c.valor,0);
+  document.getElementById('fx-rate').textContent='R$ '+f(USD_BRL,2);
+  D.cripto.sort((a,b)=>b.valor-a.valor).forEach(c=>{const qFmt=(c.ticker==='BTC'||c.ticker==='SOL')?c.qtd.toFixed(8):f(c.qtd,4);tc.innerHTML+=`<tr><td><span class="badge b-${c.ticker.toLowerCase()}">${c.ticker}</span></td><td class="tr mono" style="font-size:11px;">${qFmt}</td><td class="tr mono">$${f(c.usd,c.ticker==='BTC'?0:4)}</td><td class="tr mono">${fR(c.precoBRL)}</td><td class="tr" style="font-weight:600;">${fR(c.valor)}</td><td class="tr muted">${(c.valor/tCt*100).toFixed(1)}%</td></tr>`;});
+  const trf=document.getElementById('tb-rf'); trf.innerHTML='';
+  RF.forEach(r=>{const rd=r.atual-r.apl;trf.innerHTML+=`<tr><td><span class="badge ${r.badge}">${r.nome}</span></td><td class="tr mono">${fR(r.apl)}</td><td class="tr mono" style="font-weight:600;">${fR(r.atual)}</td><td class="tr pos">+${fR(rd)}<br><span style="font-size:10px;color:var(--text3)">${r.rend}</span></td></tr>`;});
+
+  const mgp=document.getElementById('mg-prov'); mgp.innerHTML='';
+  const tProv=D.tProv, p2026=D.p2026, rendMes=D.rendMes;
+  [{lbl:'Total registrado',val:fR(tProv),sub:'8 eventos',cls:'acc'},{lbl:'A receber 2026',val:fR(p2026),sub:'5 pagamentos',cls:'muted'},{lbl:'Próximo',val:'22/06',sub:'PETR4 · '+fR(99.37),cls:'pos'},{lbl:'Rend. mensal est.',val:fR(rendMes),sub:'divid. + RF',cls:'pos'}].forEach(d=>mgp.innerHTML+=`<div class="mc"><div class="mc-lbl">${d.lbl}</div><div class="mc-val">${d.val}</div><div class="mc-sub ${d.cls}">${d.sub}</div></div>`);
+  document.getElementById('rend-val').textContent=fR(rendMes);
+  if(rendChart)rendChart.destroy();
+  rendChart=new Chart(document.getElementById('rend-chart'),{type:'bar',data:{labels:['FIIs','Renda Fixa','Ações (DY)'],datasets:[{data:[+D.rendFII.toFixed(2),+D.rendRF.toFixed(2),+D.rendAc.toFixed(2)],backgroundColor:['#00e676','#b388ff','#00d4ff'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${fR(ctx.raw)}/mês`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#44445a',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#44445a',font:{size:11},callback:v=>'R$'+f(v,0)}}}}});
+  const tp=document.getElementById('tb-prov'); tp.innerHTML='';
+  let lastY='';
+  PROVENTOS.forEach(p=>{const yr=p.data.split('/')[2];if(yr!==lastY){tp.innerHTML+=`<tr><td colspan="4"><span class="yr-sep">${yr}</span></td></tr>`;lastY=yr;}const st=p.dias<=10?`<span class="prov-soon">Em ${p.dias} dias</span>`:`<span class="prov-future">Futuro</span>`;tp.innerHTML+=`<tr><td>${p.data}</td><td><span class="badge ${p.badge}">${p.ticker}</span></td><td class="tr" style="font-weight:600;">${fR(p.valor)}</td><td>${st}</td></tr>`;});
+
+  const mga=document.getElementById('mg-an'); mga.innerHTML='';
+  const wge=ACOES.find(a=>a.ticker==='WEGE3');
+  [{lbl:'Meta R$ 1M',val:(D.tG/META*100).toFixed(1)+'%',sub:'falta '+fR(META-D.tG),cls:'acc'},{lbl:'Resultado RV',val:fR(D.tRes),sub:fP(D.tRes/D.tCusto*100),cls:D.tRes>=0?'pos':'neg'},{lbl:'Maior posição',val:'WEGE3',sub:(wge.valor/D.tG*100).toFixed(1)+'% total',cls:'muted'},{lbl:'Classes',val:'4',sub:'ações · fiis · cripto · rf',cls:'muted'}].forEach(d=>mga.innerHTML+=`<div class="mc"><div class="mc-lbl">${d.lbl}</div><div class="mc-val">${d.val}</div><div class="mc-sub ${d.cls}">${d.sub}</div></div>`);
+  if(evolChart)evolChart.destroy();
+  evolChart=new Chart(document.getElementById('evolucao'),{type:'line',data:{labels:EVOLUCAO.map(e=>e.mes),datasets:[{label:'Patrimônio',data:EVOLUCAO.map(e=>e.val),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.06)',borderWidth:2,fill:true,tension:.4,pointBackgroundColor:'#00d4ff',pointRadius:4,pointHoverRadius:7},{label:'Meta R$1M',data:EVOLUCAO.map(()=>META),borderColor:'rgba(255,179,0,.2)',borderDash:[5,5],borderWidth:1,fill:false,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fR(ctx.raw)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#44445a',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#44445a',font:{size:11},callback:v=>'R$'+f(v/1000,0)+'k'},min:0}}}});
+  const cb=document.getElementById('conc-bars'); cb.innerHTML='';
+  const todos=[...ACOES.map(a=>({n:a.ticker,v:a.valor,c:'#00d4ff'})),...FIIS.map(a=>({n:a.ticker,v:a.valor,c:'#00e676'})),...D.cripto.map(c=>({n:c.ticker,v:c.valor,c:c.cor})),...RF.map(r=>({n:r.nome.split(' ')[0],v:r.atual,c:'#b388ff'}))].sort((a,b)=>b.v-a.v);
+  todos.forEach(x=>{const p=(x.v/D.tG*100);const w=p>30?'color:var(--red)':p>20?'color:var(--amber)':'';cb.innerHTML+=`<div class="ar"><span class="al" style="${w}">${x.n}</span><div class="at"><div class="af" style="width:${Math.max(p,.4).toFixed(1)}%;background:${x.c}"></div></div><span class="av" style="${w||'color:'+x.c}">${p.toFixed(1)}%</span></div>`;});
+  const aa=document.getElementById('an-alertas'); aa.innerHTML='';
+  aa.innerHTML+=`<div class="alert alert-w"><div class="alert-i">⚠️</div><div class="alert-b"><strong>VINO11 ${fP(FIIS.find(a=>a.ticker==='VINO11').res)}</strong> — lajes pressionadas. Defina tese.</div></div>`;
+  aa.innerHTML+=`<div class="alert alert-w"><div class="alert-i">⚠️</div><div class="alert-b"><strong>Cripto sem PM</strong> — resultado de BTC/SOL/ADA/DOGE/GALA não calculado.</div></div>`;
+  aa.innerHTML+=`<div class="alert alert-ok"><div class="alert-i">✅</div><div class="alert-b"><strong>Sem concentração crítica</strong> — carteira diversificada em 4 classes.</div></div>`;
+  aa.innerHTML+=`<div class="alert alert-ok"><div class="alert-i">✅</div><div class="alert-b"><strong>PETR4 paga ${fR(99.37)}</strong> em 22/06 — em 4 dias.</div></div>`;
+}
+
+// ════════════════════════════════════════
+// PROJEÇÃO
+// ════════════════════════════════════════
+let projChart=null;
+const ANO_BASE=2026;
+const NASC=new Date(2001,2,8);
+const idadeEm=ano=>(new Date(Math.round((ano-ANO_BASE)*365.25*86400000)+new Date(ANO_BASE,0,1).getTime())-NASC)/(365.25*86400000);
+
+function calcAporteAno(ano,trim,extra){
+  const offset=ano-ANO_BASE;
+  const crescSemestres=offset*2;
+  const crescPoup=Math.min(crescSemestres,20)*300;
+  const salBase=24000;
+  const sal=salBase+crescPoup*12;
+  const weg=20000;
+  const irEua=(ano===2027)?10220:0;
+  return sal+weg+irEua+trim*4+extra*12;
+}
+
+function calcProj(trim,rent,extra){
+  const D=calc();
+  let p=D.tG;
+  const pts=[{ano:'Hoje',val:Math.round(p)}];
+  let anoMeta=null;
+  for(let i=1;i<=10;i++){
+    const ano=ANO_BASE+i;
+    p=p*(1+rent/100)+calcAporteAno(ano,trim,extra);
+    pts.push({ano:String(ano),val:Math.round(p)});
+    if(!anoMeta&&p>=META){const prev=pts[pts.length-2].val;const frac=(META-prev)/(p-prev);anoMeta=ano-1+frac;}
+  }
+  return{pts,anoMeta};
+}
+
+function findTrimMeta(extra,rent){
+  let lo=0,hi=200000;
+  for(let i=0;i<50;i++){const mid=Math.round((lo+hi)/2);const{anoMeta}=calcProj(mid,rent,extra);if(anoMeta&&anoMeta<=2031.18)hi=mid;else lo=mid;}
+  return hi;
+}
+
+function projUpd(){
+  const trim=parseInt(document.getElementById('p-trim-sl').value);
+  const extra=parseInt(document.getElementById('p-extra-sl').value);
+  const rent=parseFloat(document.getElementById('p-rent-sl').value);
+
+  document.getElementById('p-trim-val').textContent=fR(trim);
+  document.getElementById('p-extra-val').textContent=fR(extra);
+  document.getElementById('p-rent-val').textContent=rent.toFixed(1)+'%';
+
+  const D=calc();
+  const aporte2027=calcAporteAno(2027,trim,extra);
+  const aporteRec=calcAporteAno(2028,trim,extra);
+  const salRec=24000+4*300;
+  document.getElementById('p-row-sal').textContent='+ '+fR(salRec)+'/ano (crescendo)';
+  document.getElementById('p-row-trim').textContent='+ '+fR(trim*4);
+  const hasExtra=extra>0;
+  document.getElementById('p-row-extra-wrap').style.display=hasExtra?'flex':'none';
+  if(hasExtra)document.getElementById('p-row-extra').textContent='+ '+fR(extra*12);
+  document.getElementById('p-row-total').textContent=fR(aporteRec)+'/ano';
+
+  const{pts,anoMeta}=calcProj(trim,rent,extra);
+  const atingeMeta=anoMeta!==null;
+  const idadeMeta=atingeMeta?idadeEm(anoMeta):null;
+  const antes30=atingeMeta&&anoMeta<=2031.18;
+  const trimNec=findTrimMeta(extra,rent);
+  const diffTrim=Math.max(0,trimNec-trim);
+  const val2031=pts.find(p=>p.ano==='2031')?.val||0;
+
+  const cards=document.getElementById('p-cards'); cards.innerHTML='';
+  [{lbl:'Patrimônio atual',val:fR(D.tG),sub:'base da projeção',cls:''},
+   {lbl:atingeMeta?'Ano do R$ 1M':'>2036',val:atingeMeta?Math.floor(anoMeta).toString():'>2036',sub:atingeMeta?'com '+idadeMeta.toFixed(1)+' anos':'aumente aportes',cls:antes30?'ok':atingeMeta?'warn':''},
+   {lbl:antes30?'Meta dos 30':'Falta/trimestre',val:antes30?'Atingida!':diffTrim>0?'+'+fR(diffTrim):'Quase lá',sub:antes30?'antes de mar/2031':'para cruzar antes dos 30',cls:antes30?'ok':'warn'},
+   {lbl:'Patrimônio em 2031',val:fR(val2031),sub:val2031>=META?'Meta atingida!':'faltam '+fR(META-val2031),cls:val2031>=META?'ok':''},
+  ].forEach(d=>cards.innerHTML+=`<div class="proj-mc ${d.cls}"><div class="proj-mc-lbl">${d.lbl}</div><div class="proj-mc-val">${d.val}</div><div class="proj-mc-sub">${d.sub}</div></div>`);
+
+  const labels=pts.map(p=>p.ano);
+  const data=pts.map(p=>p.val);
+  if(projChart)projChart.destroy();
+  projChart=new Chart(document.getElementById('p-chart'),{type:'line',data:{labels,datasets:[{label:'Patrimônio',data,borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.06)',borderWidth:2,fill:true,tension:.4,pointBackgroundColor:'#00e676',pointRadius:4,pointHoverRadius:7},{label:'Meta R$ 1M',data:labels.map(()=>META),borderColor:'rgba(255,179,0,.3)',borderDash:[5,4],borderWidth:1.5,fill:false,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#44445a',font:{size:11},maxRotation:0}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#44445a',font:{size:11},callback:v=>'R$'+fK(v)},min:0}}}});
+
+  const accel=document.getElementById('p-accel'); accel.innerHTML='';
+  [{icon:'💻',title:'Consultoria / freela',val:'+ R$ 2.000/mês',desc:'Projetos na área de atuação',v:2000},{icon:'📈',title:'Mentoria / conteúdo',val:'+ R$ 3.500/mês',desc:'Canal, newsletter ou mentorias',v:3500},{icon:'💼',title:'2º emprego / PJ',val:'+ R$ 5.000/mês',desc:'CLT ou contrato paralelo',v:5000},{icon:'🚀',title:'Produto / SaaS',val:'+ R$ 8.000/mês',desc:'Produto digital escalável',v:8000}].forEach(a=>{
+    accel.innerHTML+=`<div class="accel-card" onclick="setExtra(${a.v})"><div style="font-size:18px;margin-bottom:5px;">${a.icon}</div><div class="accel-title">${a.title}</div><div class="accel-val">${a.val}</div><div class="accel-desc">${a.desc}</div></div>`;
+  });
+}
+
+function setExtra(val){document.getElementById('p-extra-sl').value=val;projUpd();}
+
+// ════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════
+function nav(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='projecao') projUpd();
+}
+
+// INIT
+render();
+projUpd();
+</script>
+</body>
+</html>
